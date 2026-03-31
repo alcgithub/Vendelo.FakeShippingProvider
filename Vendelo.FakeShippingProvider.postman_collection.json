@@ -1,0 +1,359 @@
+{
+  "info": {
+    "_postman_id": "f9df9402-cf4e-40f7-83ba-f41d4b7fc2b6",
+    "name": "Vendelo Fake Shipping Provider",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Health 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"status ok\", function () {",
+              "  pm.expect(json.status).to.eql(\"ok\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calculate Shipping",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": { \"postal_code\": \"01001000\" },\n  \"to\": { \"postal_code\": \"13083000\" },\n  \"products\": [\n    {\n      \"id\": \"SKU-1\",\n      \"width\": 12,\n      \"height\": 8,\n      \"length\": 20,\n      \"weight\": 0.8,\n      \"quantity\": 2,\n      \"unit_price\": 100,\n      \"discount_total\": 0,\n      \"insurance_value\": 10\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/shipment/calculate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "shipment",
+            "calculate"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Calculate 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"Retorna array de cotações\", function () {",
+              "  pm.expect(Array.isArray(json)).to.eql(true);",
+              "  pm.expect(json.length).to.be.above(0);",
+              "});",
+              "pm.test(\"Primeira cotação tem id\", function () {",
+              "  pm.expect(json[0].id).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"service\": \"sedex\",\n  \"from\": { \"postal_code\": \"01001000\", \"name\": \"Origem Teste\" },\n  \"to\": { \"postal_code\": \"13083000\", \"name\": \"Destino Teste\" },\n  \"products\": [\n    {\n      \"id\": \"SKU-1\",\n      \"width\": 12,\n      \"height\": 8,\n      \"length\": 20,\n      \"weight\": 0.8,\n      \"quantity\": 2,\n      \"unit_price\": 100\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/cart",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "cart"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Cart 201\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"Retorna order id\", function () {",
+              "  pm.expect(json.id).to.match(/^ord_/);",
+              "});",
+              "pm.environment.set(\"orderId\", json.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate Label",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orders\": [\"{{orderId}}\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/shipment/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "shipment",
+            "generate"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Generate 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"Status generated\", function () {",
+              "  pm.expect(json[0].status).to.eql(\"generated\");",
+              "});",
+              "pm.test(\"Tem tracking\", function () {",
+              "  pm.expect(json[0].tracking).to.exist;",
+              "});",
+              "pm.environment.set(\"trackingCode\", json[0].tracking);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Order",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "orders",
+            "{{orderId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Order 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"OrderId confere\", function () {",
+              "  pm.expect(json.id).to.eql(pm.environment.get(\"orderId\"));",
+              "});",
+              "pm.test(\"Status generated\", function () {",
+              "  pm.expect(json.status).to.eql(\"generated\");",
+              "});",
+              "pm.test(\"Tracking URL\", function () {",
+              "  pm.expect(json.tracking).to.contain(\"/tracking/\");",
+              "});",
+              "pm.environment.set(\"trackingCode\", json.self_tracking);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Track by Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/tracking/{{trackingCode}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tracking",
+            "{{trackingCode}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Tracking 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"OrderId confere\", function () {",
+              "  pm.expect(json.order_id).to.eql(pm.environment.get(\"orderId\"));",
+              "});",
+              "pm.test(\"Tracking confere\", function () {",
+              "  pm.expect(json.tracking).to.eql(pm.environment.get(\"trackingCode\"));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancel Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"order\": {\n    \"id\": \"{{orderId}}\",\n    \"reason_id\": \"2\",\n    \"description\": \"Cancelamento via Postman\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/cart/cancel",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "cart",
+            "cancel"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Cancel 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"Cancelado true\", function () {",
+              "  pm.expect(json.cancelled).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://vendelo-db001-fake-shipping-provider.qcqwge.easypanel.host"
+    },
+    {
+      "key": "token",
+      "value": "vendelo-static-token"
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "trackingCode",
+      "value": ""
+    }
+  ]
+}
+

@@ -35,6 +35,8 @@ namespace Vendelo.FakeShippingProvider.Services
                 return false;
             if (p.StartsWith("/debug"))
                 return false;
+            if (p.StartsWith("/tracking/"))
+                return false;
 
             return true;
         }
@@ -126,4 +128,3 @@ namespace Vendelo.FakeShippingProvider.Services
         }
     }
 }
-

@@ -12,6 +12,7 @@ Simular com fidelidade os endpoints consumidos no `Vendelo.Back`:
 - `POST /api/v1/shipment/generate`
 - `POST /api/v1/cart/cancel`
 - `GET /api/v1/orders/{orderId}`
+- `GET /tracking/{tracking}`
 
 Com suporte a:
 
@@ -170,7 +171,13 @@ curl -X POST http://localhost:80/api/v1/cart/cancel \
       "reason_id": "2",
       "description": "Cancelamento de teste"
     }
-  }'
+}'
+```
+
+### 6) Consultar tracking por URL pÃºblica
+
+```bash
+curl http://localhost:80/tracking/VX1234567BR
 ```
 
 ## MsgAccount (recomendado)

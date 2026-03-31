@@ -105,7 +105,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 delivery_max = 6,
                 status = "created",
                 format = "box",
-                self_tracking = "VendeloFake::" + tracking,
+                self_tracking = tracking,
                 tracking = null,
                 protocol = protocol,
                 request = request,
@@ -161,6 +161,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 if (string.IsNullOrWhiteSpace(order.tracking))
                     order.tracking = "VX" + Random.Shared.Next(1000000, 9999999) + "BR";
 
+                order.self_tracking = NormalizeTrackingCode(order.self_tracking) ?? order.tracking;
                 order.status = "generated";
                 order.events.Add(new StoredEvent
                 {
@@ -174,7 +175,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                     id = orderId,
                     status = "generated",
                     label_url = "https://labels.fake-shipping.local/" + orderId + ".pdf",
-                    tracking = order.tracking,
+                    tracking = NormalizeTrackingCode(order.tracking) ?? order.tracking,
                     error = null
                 });
             }
@@ -244,9 +245,81 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 delivery_max = order.delivery_max,
                 status = order.status,
                 format = order.format,
-                self_tracking = order.self_tracking,
-                tracking = order.tracking
+                self_tracking = NormalizeTrackingCode(order.self_tracking) ?? order.self_tracking,
+                tracking = BuildTrackingUrl(NormalizeTrackingCode(order.tracking) ?? NormalizeTrackingCode(order.self_tracking))
             });
+        }
+
+        [HttpGet("/tracking/{tracking}")]
+        public IActionResult Track([FromRoute] string tracking)
+        {
+            var trackingCode = NormalizeTrackingCode(tracking);
+            if (string.IsNullOrWhiteSpace(trackingCode))
+                return NotFound(new { error = "Tracking not found.", tracking = tracking });
+
+            var db = _store.Read();
+            var order = db.orders.Values.FirstOrDefault(o =>
+            {
+                var selfCode = NormalizeTrackingCode(o.self_tracking);
+                var orderCode = NormalizeTrackingCode(o.tracking);
+                return string.Equals(selfCode, trackingCode, StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(orderCode, trackingCode, StringComparison.OrdinalIgnoreCase);
+            });
+
+            if (order == null)
+            {
+                return NotFound(new
+                {
+                    error = "Tracking not found.",
+                    tracking = trackingCode
+                });
+            }
+
+            return Ok(new
+            {
+                tracking = trackingCode,
+                order_id = order.id,
+                status = order.status,
+                self_tracking = NormalizeTrackingCode(order.self_tracking),
+                tracking_url = BuildTrackingUrl(trackingCode)
+            });
+        }
+
+        private string BuildTrackingUrl(string trackingCode)
+        {
+            if (string.IsNullOrWhiteSpace(trackingCode))
+                return null;
+
+            var code = NormalizeTrackingCode(trackingCode);
+            if (string.IsNullOrWhiteSpace(code))
+                return null;
+
+            return $"{Request.Scheme}://{Request.Host}/tracking/{code}";
+        }
+
+        private static string NormalizeTrackingCode(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            const string prefix = "VendeloFake::";
+            var normalized = value.Trim();
+            if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                normalized = normalized.Substring(prefix.Length);
+
+            var marker = "/tracking/";
+            var idx = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0 && idx + marker.Length < normalized.Length)
+                normalized = normalized.Substring(idx + marker.Length);
+            else
+            {
+                var legacyMarker = "/rastreio/";
+                var legacyIdx = normalized.IndexOf(legacyMarker, StringComparison.OrdinalIgnoreCase);
+                if (legacyIdx >= 0 && legacyIdx + legacyMarker.Length < normalized.Length)
+                    normalized = normalized.Substring(legacyIdx + legacyMarker.Length);
+            }
+
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized.Trim('/');
         }
 
         private static ShippingProviderCompany PickCompany(string service)
@@ -274,4 +347,3 @@ namespace Vendelo.FakeShippingProvider.Controllers
         }
     }
 }
-
