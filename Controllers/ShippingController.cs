@@ -36,20 +36,23 @@ namespace Vendelo.FakeShippingProvider.Controllers
             var totalWeight = request.products.Sum(x => x.weight * x.quantity);
             var totalValue = GetTotalValue(request.products);
             var basePrice = Math.Max(15m, 9.9m + totalWeight * 4.2m + totalValue * 0.015m);
-            var ids = new[] { "1", "2", "3" };
-            var names = new[] { "SEDEX", "PAC", "Jadlog Package" };
-            var days = new[] { 2, 5, 3 };
-            var factors = new[] { 1.25m, 1.0m, 1.13m };
+            var ids = new[] { "1", "2", "3", "4" };
+            var names = new[] { "SEDEX", "PAC", "Jadlog Package", "ChinaLog" };
+            var days = new[] { 2, 5, 3, 12 };
+            var factors = new[] { 1.25m, 1.0m, 1.13m, 1.0m };
 
             var rows = new List<ShippingProviderQuoteResponse>();
             for (var i = 0; i < ids.Length; i++)
             {
+                var quotePrice = ids[i] == "4"
+                    ? GetUnitPriceRef(request.products, basePrice)
+                    : Math.Round(basePrice * factors[i], 2);
                 rows.Add(new ShippingProviderQuoteResponse
                 {
                     id = ids[i],
                     name = names[i],
-                    custom_price = Math.Round(basePrice * factors[i], 2),
-                    discount = i == 0 ? 0m : Math.Round(basePrice * factors[i] * 0.05m, 2),
+                    custom_price = quotePrice,
+                    discount = ids[i] == "4" ? 0m : (i == 0 ? 0m : Math.Round(basePrice * factors[i] * 0.05m, 2)),
                     currency = "BRL",
                     custom_delivery_time = days[i],
                     company = PickCompany(ids[i]),
@@ -59,7 +62,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                         {
                             format = "box",
                             weight = totalWeight,
-                            price = Math.Round(basePrice * factors[i], 2),
+                            price = quotePrice,
                             insurance_value = Math.Round(totalValue * 0.02m, 2),
                             dimensions = new ShippingProviderDimensions { width = 20, height = 10, length = 30 },
                             products = request.products.Select(x => new ShippingProviderPackageProduct
@@ -329,6 +332,8 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 return new ShippingProviderCompany { id = "1", name = "Correios", picture = "https://fake.local/correios.png" };
             if (key == "3")
                 return new ShippingProviderCompany { id = "2", name = "Jadlog", picture = "https://fake.local/jadlog.png" };
+            if (key == "4")
+                return new ShippingProviderCompany { id = "4", name = "ChinaLog", picture = "https://fake.local/chinalog.png" };
             return new ShippingProviderCompany { id = "9", name = "Transportadora Externa", picture = "https://fake.local/external.png" };
         }
 
@@ -344,8 +349,19 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 return 2;
             if (normalized == "jadlog")
                 return 3;
+            if (normalized == "chinalog")
+                return 4;
 
             return null;
+        }
+
+        private static decimal GetUnitPriceRef(List<ShippingProviderQuoteProduct> products, decimal fallbackPrice)
+        {
+            var refItem = products?.FirstOrDefault();
+            if (refItem == null)
+                return Math.Round(fallbackPrice, 2);
+
+            return Math.Round(refItem.unit_price, 2);
         }
 
         private static decimal GetTotalValue(List<ShippingProviderQuoteProduct> products)
