@@ -36,7 +36,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
             var totalWeight = request.products.Sum(x => x.weight * x.quantity);
             var totalValue = GetTotalValue(request.products);
             var basePrice = Math.Max(15m, 9.9m + totalWeight * 4.2m + totalValue * 0.015m);
-            var ids = new[] { "sedex", "pac", "jadlog" };
+            var ids = new[] { "1", "2", "3" };
             var names = new[] { "SEDEX", "PAC", "Jadlog Package" };
             var days = new[] { 2, 5, 3 };
             var factors = new[] { 1.25m, 1.0m, 1.13m };
@@ -97,13 +97,13 @@ namespace Vendelo.FakeShippingProvider.Controllers
             var order = new StoredOrder
             {
                 id = id,
-                service_id = null,
-                agency_id = null,
+                service_id = ParseServiceId(request.service),
+                agency_id = 42,
                 quote = Math.Round(GetTotalValue(request.products) * 0.12m + 9.9m, 2),
                 price = Math.Round(GetTotalValue(request.products) * 0.12m + 9.9m, 2),
                 delivery_min = 2,
-                delivery_max = 6,
-                status = "created",
+                delivery_max = 3,
+                status = "pending",
                 format = "box",
                 self_tracking = tracking,
                 tracking = null,
@@ -123,13 +123,13 @@ namespace Vendelo.FakeShippingProvider.Controllers
             db.orders[id] = order;
             _store.Write(db);
 
-            return StatusCode(201, new ShippingProviderCartResponse
+            return Ok(new ShippingProviderCartResponse
             {
                 id = id,
                 protocol = protocol,
                 self_tracking = order.self_tracking,
                 error = null,
-                errors = new Dictionary<string, string[]>()
+                errors = null
             });
         }
 
@@ -150,7 +150,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                     output.Add(new ShippingProviderGenerateResponse
                     {
                         id = orderId,
-                        status = "not_found",
+                        status = "error",
                         label_url = null,
                         tracking = null,
                         error = "Order not found."
@@ -162,7 +162,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                     order.tracking = "VX" + Random.Shared.Next(1000000, 9999999) + "BR";
 
                 order.self_tracking = NormalizeTrackingCode(order.self_tracking) ?? order.tracking;
-                order.status = "generated";
+                order.status = "released";
                 order.events.Add(new StoredEvent
                 {
                     atUtc = DateTime.UtcNow.ToString("O"),
@@ -173,7 +173,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 output.Add(new ShippingProviderGenerateResponse
                 {
                     id = orderId,
-                    status = "generated",
+                    status = "released",
                     label_url = "https://labels.fake-shipping.local/" + orderId + ".pdf",
                     tracking = NormalizeTrackingCode(order.tracking) ?? order.tracking,
                     error = null
@@ -217,7 +217,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
             {
                 cancelled = true,
                 error = null,
-                errors = new Dictionary<string, string[]>()
+                errors = null
             });
         }
 
@@ -325,11 +325,27 @@ namespace Vendelo.FakeShippingProvider.Controllers
         private static ShippingProviderCompany PickCompany(string service)
         {
             var key = (service ?? "").ToLowerInvariant();
-            if (key == "sedex" || key == "pac")
+            if (key == "1" || key == "2")
                 return new ShippingProviderCompany { id = "1", name = "Correios", picture = "https://fake.local/correios.png" };
-            if (key == "jadlog")
+            if (key == "3")
                 return new ShippingProviderCompany { id = "2", name = "Jadlog", picture = "https://fake.local/jadlog.png" };
             return new ShippingProviderCompany { id = "9", name = "Transportadora Externa", picture = "https://fake.local/external.png" };
+        }
+
+        private static int? ParseServiceId(string service)
+        {
+            if (int.TryParse(service, out var parsed))
+                return parsed;
+
+            var normalized = (service ?? "").Trim().ToLowerInvariant();
+            if (normalized == "sedex")
+                return 1;
+            if (normalized == "pac")
+                return 2;
+            if (normalized == "jadlog")
+                return 3;
+
+            return null;
         }
 
         private static decimal GetTotalValue(List<ShippingProviderQuoteProduct> products)

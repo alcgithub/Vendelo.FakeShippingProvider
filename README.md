@@ -21,6 +21,14 @@ Com suporte a:
 - logs detalhados de request/response
 - validações de payload com retorno de erros no padrão `{ error, errors }`
 
+## Comportamento atual da API fake
+
+- `POST /api/v1/shipment/calculate` retorna serviços com `id` `"1"`, `"2"` e `"3"` (compatíveis com o fluxo do Vendelo.Back).
+- `POST /api/v1/cart` retorna `200 OK` com `{ id, protocol, self_tracking, error, errors }`.
+- O pedido nasce com `status = "pending"`.
+- `POST /api/v1/shipment/generate` muda o pedido para `status = "released"` e retorna `label_url` + `tracking`.
+- `POST /api/v1/cart/cancel` muda o pedido para `status = "cancelled"`.
+
 ## Compatibilidade com fluxo do Vendelo.Back
 
 Este projeto foi alinhado ao comportamento observado em:
@@ -126,7 +134,7 @@ curl -X POST http://localhost:80/api/v1/cart \
   -H "Authorization: Bearer vendelo-static-token" \
   -H "Content-Type: application/json" \
   -d '{
-    "service": "sedex",
+    "service": "1",
     "from": { "postal_code": "01001000", "name": "Origem Teste" },
     "to": { "postal_code": "13083000", "name": "Destino Teste" },
     "products": [
@@ -142,6 +150,8 @@ curl -X POST http://localhost:80/api/v1/cart \
     ]
   }'
 ```
+
+Observação: o fake aceita IDs numéricos de serviço (`"1"`, `"2"`, `"3"`). Valores legados (`"sedex"`, `"pac"`, `"jadlog"`) continuam sendo normalizados internamente para manter compatibilidade.
 
 ### 3) Gerar etiqueta
 
@@ -174,7 +184,7 @@ curl -X POST http://localhost:80/api/v1/cart/cancel \
 }'
 ```
 
-### 6) Consultar tracking por URL pÃºblica
+### 6) Consultar tracking por URL pública
 
 ```bash
 curl http://localhost:80/tracking/VX1234567BR

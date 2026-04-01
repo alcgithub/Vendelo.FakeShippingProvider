@@ -87,7 +87,8 @@
               "});",
               "pm.test(\"Primeira cotação tem id\", function () {",
               "  pm.expect(json[0].id).to.exist;",
-              "});"
+              "});",
+              "pm.environment.set(\"serviceId\", json[0].id);"
             ]
           }
         }
@@ -111,7 +112,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"service\": \"sedex\",\n  \"from\": { \"postal_code\": \"01001000\", \"name\": \"Origem Teste\" },\n  \"to\": { \"postal_code\": \"13083000\", \"name\": \"Destino Teste\" },\n  \"products\": [\n    {\n      \"id\": \"SKU-1\",\n      \"width\": 12,\n      \"height\": 8,\n      \"length\": 20,\n      \"weight\": 0.8,\n      \"quantity\": 2,\n      \"unit_price\": 100\n    }\n  ]\n}"
+          "raw": "{\n  \"service\": \"{{serviceId}}\",\n  \"from\": { \"postal_code\": \"01001000\", \"name\": \"Origem Teste\" },\n  \"to\": { \"postal_code\": \"13083000\", \"name\": \"Destino Teste\" },\n  \"products\": [\n    {\n      \"id\": \"SKU-1\",\n      \"width\": 12,\n      \"height\": 8,\n      \"length\": 20,\n      \"weight\": 0.8,\n      \"quantity\": 2,\n      \"unit_price\": 100\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/cart",
@@ -131,8 +132,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"Cart 201\", function () {",
-              "  pm.response.to.have.status(201);",
+              "pm.test(\"Cart 200\", function () {",
+              "  pm.response.to.have.status(200);",
               "});",
               "var json = pm.response.json();",
               "pm.test(\"Retorna order id\", function () {",
@@ -187,8 +188,8 @@
               "  pm.response.to.have.status(200);",
               "});",
               "var json = pm.response.json();",
-              "pm.test(\"Status generated\", function () {",
-              "  pm.expect(json[0].status).to.eql(\"generated\");",
+              "pm.test(\"Status released\", function () {",
+              "  pm.expect(json[0].status).to.eql(\"released\");",
               "});",
               "pm.test(\"Tem tracking\", function () {",
               "  pm.expect(json[0].tracking).to.exist;",
@@ -236,8 +237,8 @@
               "pm.test(\"OrderId confere\", function () {",
               "  pm.expect(json.id).to.eql(pm.environment.get(\"orderId\"));",
               "});",
-              "pm.test(\"Status generated\", function () {",
-              "  pm.expect(json.status).to.eql(\"generated\");",
+              "pm.test(\"Status released\", function () {",
+              "  pm.expect(json.status).to.eql(\"released\");",
               "});",
               "pm.test(\"Tracking URL\", function () {",
               "  pm.expect(json.tracking).to.contain(\"/tracking/\");",
@@ -351,9 +352,14 @@
       "value": ""
     },
     {
+      "key": "serviceId",
+      "value": "1"
+    },
+    {
       "key": "trackingCode",
       "value": ""
     }
   ]
 }
+
 

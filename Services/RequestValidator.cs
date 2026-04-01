@@ -53,8 +53,12 @@ namespace Vendelo.FakeShippingProvider.Services
                 errors["service"] = new[] { "service is required." };
             if (req.from == null)
                 errors["from"] = new[] { "from is required." };
+            else if (string.IsNullOrWhiteSpace(req.from.postal_code))
+                errors["from.postal_code"] = new[] { "from.postal_code is required." };
             if (req.to == null)
                 errors["to"] = new[] { "to is required." };
+            else if (string.IsNullOrWhiteSpace(req.to.postal_code))
+                errors["to.postal_code"] = new[] { "to.postal_code is required." };
             if (req.products == null || req.products.Count == 0)
                 errors["products"] = new[] { "At least one product is required." };
 
@@ -86,4 +90,3 @@ namespace Vendelo.FakeShippingProvider.Services
         }
     }
 }
-
