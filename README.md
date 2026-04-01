@@ -6,6 +6,7 @@ API fake em ASP.NET Core para validar integração de `MsgAccount` do `Vendelo.B
 
 Simular com fidelidade os endpoints consumidos no `Vendelo.Back`:
 
+- `GET /oauth/authorize`
 - `POST /oauth/token`
 - `POST /api/v1/shipment/calculate`
 - `POST /api/v1/cart`
@@ -17,7 +18,7 @@ Simular com fidelidade os endpoints consumidos no `Vendelo.Back`:
 Com suporte a:
 
 - token fixo (`STATIC`)
-- OAuth por refresh token
+- OAuth por `authorization_code` e `refresh_token`
 - logs detalhados de request/response
 - validações de payload com retorno de erros no padrão `{ error, errors }`
 
@@ -78,17 +79,26 @@ Authorization: Bearer vendelo-static-token
 
 ### OAuth refresh
 
+Fluxo completo suportado:
+
+1. `GET /oauth/authorize` com `response_type=code`
+2. `POST /oauth/token` com `grant_type=authorization_code`
+3. `POST /oauth/token` com `grant_type=refresh_token`
+
+Exemplo authorize:
+
+```bash
+curl -i "http://localhost:80/oauth/authorize?response_type=code&client_id=vendelo-client&redirect_uri=https%3A%2F%2Fgql001.vendelo.cloud%2Fapi%2FexternalShippingApiAuth&state=test-state"
+```
+
+O endpoint retorna `302 Found` redirecionando para `redirect_uri` com `code` e `state`.
+
 Request:
 
 ```bash
 curl -X POST http://localhost:80/oauth/token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "grant_type": "refresh_token",
-    "refresh_token": "vendelo-oauth-refresh-token",
-    "client_id": "vendelo-client",
-    "client_secret": "vendelo-secret"
-  }'
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=refresh_token&refresh_token=vendelo-oauth-refresh-token&client_id=vendelo-client&client_secret=vendelo-secret"
 ```
 
 Resposta:

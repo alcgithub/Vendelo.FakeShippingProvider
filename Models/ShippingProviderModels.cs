@@ -222,8 +222,28 @@ namespace Vendelo.FakeShippingProvider.Models
     {
         public string grant_type { get; set; }
         public string refresh_token { get; set; }
+        public string code { get; set; }
+        public string redirect_uri { get; set; }
         public string client_id { get; set; }
         public string client_secret { get; set; }
+    }
+
+    public class OAuthAuthorizeRequest
+    {
+        public string response_type { get; set; }
+        public string client_id { get; set; }
+        public string redirect_uri { get; set; }
+        public string state { get; set; }
+        public string scope { get; set; }
+    }
+
+    public class OAuthAuthorizationCodeState
+    {
+        public string code { get; set; }
+        public string clientId { get; set; }
+        public string redirectUri { get; set; }
+        public string scope { get; set; }
+        public string issuedAtUtc { get; set; }
     }
 
     public class OAuthState
@@ -255,7 +275,7 @@ namespace Vendelo.FakeShippingProvider.Models
     {
         public Dictionary<string, StoredOrder> orders { get; set; } = new Dictionary<string, StoredOrder>();
         public OAuthState oauth { get; set; } = new OAuthState();
+        public Dictionary<string, OAuthAuthorizationCodeState> oauthCodes { get; set; } = new Dictionary<string, OAuthAuthorizationCodeState>();
         public Dictionary<string, string> meta { get; set; } = new Dictionary<string, string>();
     }
 }
-

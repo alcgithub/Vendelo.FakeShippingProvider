@@ -39,6 +39,204 @@
       ]
     },
     {
+      "name": "OAuth Authorize (Get Code)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/oauth/authorize?response_type=code&client_id={{clientId}}&redirect_uri={{redirectUri}}&state={{oauthState}}&scope=shipping-calculate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "oauth",
+            "authorize"
+          ],
+          "query": [
+            {
+              "key": "response_type",
+              "value": "code"
+            },
+            {
+              "key": "client_id",
+              "value": "{{clientId}}"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "{{redirectUri}}"
+            },
+            {
+              "key": "state",
+              "value": "{{oauthState}}"
+            },
+            {
+              "key": "scope",
+              "value": "shipping-calculate"
+            }
+          ]
+        }
+      },
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Authorize 302\", function () {",
+              "  pm.response.to.have.status(302);",
+              "});",
+              "var location = pm.response.headers.get(\"Location\") || pm.response.headers.get(\"location\");",
+              "pm.test(\"Tem Location\", function () {",
+              "  pm.expect(location).to.exist;",
+              "});",
+              "var match = location ? location.match(/[?&]code=([^&]+)/) : null;",
+              "pm.test(\"Tem code\", function () {",
+              "  pm.expect(match).to.not.eql(null);",
+              "});",
+              "if (match && match[1]) {",
+              "  pm.collectionVariables.set(\"authCode\", decodeURIComponent(match[1]));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth Token (Authorization Code)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "authorization_code",
+              "type": "text"
+            },
+            {
+              "key": "code",
+              "value": "{{authCode}}",
+              "type": "text"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "{{redirectUri}}",
+              "type": "text"
+            },
+            {
+              "key": "client_id",
+              "value": "{{clientId}}",
+              "type": "text"
+            },
+            {
+              "key": "client_secret",
+              "value": "{{clientSecret}}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/oauth/token",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "oauth",
+            "token"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Token 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"Retorna access_token\", function () {",
+              "  pm.expect(json.access_token).to.exist;",
+              "});",
+              "if (json.access_token) {",
+              "  pm.collectionVariables.set(\"token\", json.access_token);",
+              "}",
+              "if (json.refresh_token) {",
+              "  pm.collectionVariables.set(\"refreshToken\", json.refresh_token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth Token (Refresh Token)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "refresh_token",
+              "type": "text"
+            },
+            {
+              "key": "refresh_token",
+              "value": "{{refreshToken}}",
+              "type": "text"
+            },
+            {
+              "key": "client_id",
+              "value": "{{clientId}}",
+              "type": "text"
+            },
+            {
+              "key": "client_secret",
+              "value": "{{clientSecret}}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/oauth/token",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "oauth",
+            "token"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Refresh 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test(\"Retorna access_token\", function () {",
+              "  pm.expect(json.access_token).to.exist;",
+              "});",
+              "if (json.access_token) {",
+              "  pm.collectionVariables.set(\"token\", json.access_token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "Calculate Shipping",
       "request": {
         "method": "POST",
@@ -358,6 +556,30 @@
     {
       "key": "trackingCode",
       "value": ""
+    },
+    {
+      "key": "clientId",
+      "value": "vendelo-client"
+    },
+    {
+      "key": "clientSecret",
+      "value": "vendelo-secret"
+    },
+    {
+      "key": "redirectUri",
+      "value": "https://gql001.vendelo.cloud/api/externalShippingApiAuth"
+    },
+    {
+      "key": "oauthState",
+      "value": "fake-state-001"
+    },
+    {
+      "key": "authCode",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": "vendelo-oauth-refresh-token"
     }
   ]
 }
