@@ -16,7 +16,7 @@ namespace Vendelo.FakeShippingProvider.Options
         public string OAuthRedirectUri { get; set; } = "";
         public string OAuthRefreshToken { get; set; } = "vendelo-oauth-refresh-token";
         public string OAuthAccessToken { get; set; } = "vendelo-oauth-access-token";
-        public long OAuthExpiresIn { get; set; } = 3600;
+        public long OAuthExpiresIn { get; set; } = 864000;
         public string OAuthTokenType { get; set; } = "Bearer";
     }
 
