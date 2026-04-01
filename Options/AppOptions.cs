@@ -13,6 +13,7 @@ namespace Vendelo.FakeShippingProvider.Options
         public string StaticToken { get; set; } = "vendelo-static-token";
         public string OAuthClientId { get; set; } = "vendelo-client";
         public string OAuthClientSecret { get; set; } = "vendelo-secret";
+        public string OAuthRedirectUri { get; set; } = "";
         public string OAuthRefreshToken { get; set; } = "vendelo-oauth-refresh-token";
         public string OAuthAccessToken { get; set; } = "vendelo-oauth-access-token";
         public long OAuthExpiresIn { get; set; } = 3600;
@@ -30,4 +31,3 @@ namespace Vendelo.FakeShippingProvider.Options
         public string DataFile { get; set; } = "data/db.json";
     }
 }
-

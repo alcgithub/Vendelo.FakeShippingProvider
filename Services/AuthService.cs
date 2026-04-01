@@ -97,7 +97,7 @@ namespace Vendelo.FakeShippingProvider.Services
             {
                 code = code,
                 clientId = request.client_id,
-                redirectUri = request.redirect_uri,
+                redirectUri = NormalizeRedirectUri(request.redirect_uri),
                 scope = request.scope,
                 issuedAtUtc = DateTime.UtcNow.ToString("O")
             };
@@ -143,6 +143,18 @@ namespace Vendelo.FakeShippingProvider.Services
                 errorCode = "invalid_request";
                 errorMessage = "redirect_uri is required.";
                 return false;
+            }
+
+            var expectedRedirectUri = NormalizeRedirectUri(_options.Auth.OAuthRedirectUri);
+            if (!string.IsNullOrWhiteSpace(expectedRedirectUri))
+            {
+                var currentRedirectUri = NormalizeRedirectUri(request.redirect_uri);
+                if (!string.Equals(currentRedirectUri, expectedRedirectUri, StringComparison.OrdinalIgnoreCase))
+                {
+                    errorCode = "invalid_request";
+                    errorMessage = "redirect_uri is not allowed by Auth__OAuthRedirectUri.";
+                    return false;
+                }
             }
 
             return true;
@@ -220,7 +232,7 @@ namespace Vendelo.FakeShippingProvider.Services
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.redirect_uri) &&
-                    !string.Equals(codeState.redirectUri, request.redirect_uri, StringComparison.Ordinal))
+                    !string.Equals(codeState.redirectUri, NormalizeRedirectUri(request.redirect_uri), StringComparison.OrdinalIgnoreCase))
                 {
                     errorCode = "invalid_grant";
                     errorMessage = "redirect_uri does not match authorization request.";
@@ -235,6 +247,14 @@ namespace Vendelo.FakeShippingProvider.Services
             errorCode = "unsupported_grant_type";
             errorMessage = "grant_type must be refresh_token or authorization_code.";
             return false;
+        }
+
+        private string NormalizeRedirectUri(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return value;
+
+            return value.Trim().TrimEnd('/');
         }
     }
 }

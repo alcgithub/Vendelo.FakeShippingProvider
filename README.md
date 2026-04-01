@@ -66,6 +66,7 @@ Variáveis relevantes:
 - `Auth__StaticToken`
 - `Auth__OAuthClientId`
 - `Auth__OAuthClientSecret`
+- `Auth__OAuthRedirectUri` (opcional, trava o redirect URI permitido no authorize/token)
 - `Auth__OAuthRefreshToken`
 - `Auth__OAuthAccessToken`
 
