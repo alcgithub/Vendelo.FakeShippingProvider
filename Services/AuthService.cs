@@ -58,6 +58,9 @@ namespace Vendelo.FakeShippingProvider.Services
 
             if (allowOAuth)
             {
+                if (bearerToken == _options.Auth.OAuthAccessToken)
+                    return true;
+
                 var db = _store.Read();
                 if (db?.oauth?.accessToken == bearerToken)
                     return true;
