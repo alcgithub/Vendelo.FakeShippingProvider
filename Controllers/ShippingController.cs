@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Vendelo.FakeShippingProvider.Models;
 using Vendelo.FakeShippingProvider.Options;
 using Vendelo.FakeShippingProvider.Services;
@@ -14,17 +15,21 @@ namespace Vendelo.FakeShippingProvider.Controllers
     {
         private readonly IDataStore _store;
         private readonly AppOptions _options;
+        private readonly ILogger<ShippingController> _logger;
 
-        public ShippingController(IDataStore store, AppOptions options)
+        public ShippingController(IDataStore store, AppOptions options, ILogger<ShippingController> logger)
         {
             _store = store;
             _options = options;
+            _logger = logger;
         }
 
         [HttpPost("/api/v1/shipment/calculate")]
         public IActionResult Calculate([FromBody] ShippingProviderQuoteRequest request)
         {
-            Console.WriteLine($"[calculate] payload: {JsonSerializer.Serialize(request)}");
+            var payloadJson = JsonSerializer.Serialize(request);
+            Console.WriteLine($"[calculate] payload: {payloadJson}");
+            _logger.LogWarning("CALCULATE_IN requestId={RequestId} payload={Payload}", HttpContext.Items["requestId"]?.ToString(), payloadJson);
 
             var errors = RequestValidator.ValidateQuote(request);
             if (errors.Count > 0)
@@ -84,6 +89,10 @@ namespace Vendelo.FakeShippingProvider.Controllers
                     error = null
                 });
             }
+
+            var responseJson = JsonSerializer.Serialize(rows);
+            Console.WriteLine($"[calculate] response: {responseJson}");
+            _logger.LogWarning("CALCULATE_OUT requestId={RequestId} response={Response}", HttpContext.Items["requestId"]?.ToString(), responseJson);
 
             return Ok(rows);
         }
