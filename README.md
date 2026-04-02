@@ -1,45 +1,121 @@
-# Vendelo Fake Shipping Provider (C# 8 / .NET 6)
+﻿# Vendelo Fake Shipping Provider (C# 8 / .NET 6)
 
-API fake em ASP.NET Core para validar integração de `MsgAccount` do `Vendelo.Back` com fornecedores externos de frete.
+API fake em ASP.NET Core para validar a integracao do `Vendelo.Back` com provedores externos de frete.
 
 ## Objetivo
 
-Simular com fidelidade os endpoints consumidos no `Vendelo.Back`:
+Este projeto simula o ciclo completo de frete externo:
+
+- autenticacao (`static` e `oauth`)
+- cotacao de frete
+- criacao de pedido (cart)
+- geracao de etiqueta
+- consulta de pedido e rastreio
+- cancelamento
+
+Tambem possui rotas de debug para facilitar testes locais.
+
+## Servicos fake expostos
+
+Atualmente o fake retorna 4 servicos de frete no `shipment/calculate`:
+
+- `id = "1"`: `SEDEX (Correios)`
+- `id = "2"`: `PAC (Correios)`
+- `id = "3"`: `Jadlog Package (Jadlog)`
+- `id = "4"`: `ChinaLog (ChinaLog)`
+
+Regras atuais de calculo fake:
+
+- valor base e prazo sao predefinidos por servico
+- payload de entrada e validado (CEP, produtos, dimensoes/peso)
+- respostas de erro seguem formato `{ "error": "...", "errors": { ... } }`
+
+## Rotas (o que cada uma faz)
+
+### Health
+
+- `GET /health`
+- Uso: verificar se a API fake esta no ar.
+
+### OAuth - iniciar autorizacao
 
 - `GET /oauth/authorize`
+- Uso: simula tela de autorizacao e retorna `302` para `redirect_uri` com `code` e `state`.
+- Query principal: `response_type=code`, `client_id`, `redirect_uri`, `state`.
+
+### OAuth - trocar code ou refresh token
+
 - `POST /oauth/token`
+- Uso: retorna `access_token`/`refresh_token`.
+- Suporta:
+  - `grant_type=authorization_code`
+  - `grant_type=refresh_token`
+
+### Cotacao
+
 - `POST /api/v1/shipment/calculate`
+- Uso: calcula opcoes de frete por servico.
+- Retorno: lista de servicos fake (`1`, `2`, `3`, `4`) com prazo/valor.
+
+### Criar cart/pedido
+
 - `POST /api/v1/cart`
+- Uso: cria pedido de envio no provider fake.
+- Retorno: `{ id, protocol, self_tracking, error, errors }`.
+- Estado inicial: `pending`.
+
+### Gerar etiqueta
+
 - `POST /api/v1/shipment/generate`
+- Uso: gera etiqueta para pedidos informados.
+- Efeito: muda estado para `released`.
+- Retorno: `label_url` e `tracking`.
+
+Importante:
+
+- para `EXTERNAL_SHIPPING_PROVIDER`, `tracking` deve ser URL completa (nao codigo puro)
+- exemplo: `https://provider.fake/tracking/TRK123`
+
+### Cancelar cart/pedido
+
 - `POST /api/v1/cart/cancel`
+- Uso: cancela pedido existente.
+- Efeito: muda estado para `cancelled`.
+
+### Consultar pedido
+
 - `GET /api/v1/orders/{orderId}`
+- Uso: consultar status e metadados do pedido no provider fake.
+
+### Pagina publica de rastreio fake
+
 - `GET /tracking/{tracking}`
+- Uso: simular abertura de link de rastreio no navegador.
 
-Com suporte a:
+### Debug - listar pedidos internos
 
-- token fixo (`STATIC`)
-- OAuth por `authorization_code` e `refresh_token`
-- logs detalhados de request/response
-- validações de payload com retorno de erros no padrão `{ error, errors }`
+- `GET /debug/orders`
+- Uso: inspecionar pedidos criados no armazenamento interno fake.
 
-## Comportamento atual da API fake
+### Debug - resetar pedidos internos
 
-- `POST /api/v1/shipment/calculate` retorna serviços com `id` `"1"`, `"2"` e `"3"` (compatíveis com o fluxo do Vendelo.Back).
-- `POST /api/v1/cart` retorna `200 OK` com `{ id, protocol, self_tracking, error, errors }`.
-- O pedido nasce com `status = "pending"`.
-- `POST /api/v1/shipment/generate` muda o pedido para `status = "released"` e retorna `label_url` + `tracking` (ambos como URL de rastreio no fake).
-- Para integração `EXTERNAL_SHIPPING_PROVIDER`, o campo `tracking` deve ser retornado já como URL completa de rastreio (ex: `https://seu-provider/tracking/ABC123`).
-- `POST /api/v1/cart/cancel` muda o pedido para `status = "cancelled"`.
+- `POST /debug/reset`
+- Uso: limpar base de pedidos fake para reexecutar cenarios.
 
-## Compatibilidade com fluxo do Vendelo.Back
+## Compatibilidade com Vendelo.Back
 
-Este projeto foi alinhado ao comportamento observado em:
+Fluxo alinhado com:
 
 - `VendeloApiShippingProviderClient.GetQuotes(...)`
 - `ShippingProviderDispatchUseCase` (`AddCart`, `GenerateLabel`, `Cancel`, `GetOrderInfo`)
 - refresh OAuth em `/oauth/token` com `grant_type=refresh_token`
 
-## Configuração rápida
+Observacao para o front-end:
+
+- fallback para `melhorrastreio` deve ocorrer apenas quando `integrationTag == "melhor envio"` (lower case)
+- para provider externo, usar `tracking` ja no formato de URL completa
+
+## Configuracao rapida
 
 1. Build:
 
@@ -47,200 +123,59 @@ Este projeto foi alinhado ao comportamento observado em:
 dotnet build .\Vendelo.FakeShippingProvider.csproj
 ```
 
-2. Subir:
+2. Run:
 
 ```bash
 dotnet run --project .\Vendelo.FakeShippingProvider.csproj
 ```
 
-3. Health:
+3. Health check:
 
 ```bash
 curl http://localhost:80/health
 ```
 
-## Configuração de autenticação
-
-Variáveis relevantes:
+## Variaveis de ambiente (autenticacao)
 
 - `Auth__Mode`: `static`, `oauth` ou `both`
 - `Auth__StaticToken`
 - `Auth__OAuthClientId`
 - `Auth__OAuthClientSecret`
-- `Auth__OAuthRedirectUri` (opcional, trava o redirect URI permitido no authorize/token)
+- `Auth__OAuthRedirectUri` (opcional, valida `redirect_uri`)
 - `Auth__OAuthRefreshToken`
 - `Auth__OAuthAccessToken`
+- `Behavior__EnableDebugRoutes` (`true/false`)
 
-### Token fixo (STATIC)
+## MsgAccount recomendada no Vendelo
 
-Use no header:
+Para `EXTERNAL_SHIPPING_PROVIDER`:
 
-```txt
-Authorization: Bearer vendelo-static-token
-```
+- `Host`: URL do fake provider
+- `UserName`: `Auth__OAuthClientId` (quando OAuth)
+- `Password`: `Auth__OAuthClientSecret` (quando OAuth)
+- `Token`: estatico (`static`) ou OAuth (`oauth/both`)
 
-### OAuth refresh
-
-Fluxo completo suportado:
-
-1. `GET /oauth/authorize` com `response_type=code`
-2. `POST /oauth/token` com `grant_type=authorization_code`
-3. `POST /oauth/token` com `grant_type=refresh_token`
-
-Exemplo authorize:
+## Exemplo rapido de OAuth (authorize)
 
 ```bash
 curl -i "http://localhost:80/oauth/authorize?response_type=code&client_id=vendelo-client&redirect_uri=https%3A%2F%2Fgql001.vendelo.cloud%2Fapi%2FexternalShippingApiAuth&state=test-state"
 ```
 
-O endpoint retorna `302 Found` redirecionando para `redirect_uri` com `code` e `state`.
+## Docker / EasyPanel
 
-Request:
+O projeto ja possui `Dockerfile`.
 
-```bash
-curl -X POST http://localhost:80/oauth/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=refresh_token&refresh_token=vendelo-oauth-refresh-token&client_id=vendelo-client&client_secret=vendelo-secret"
-```
-
-Resposta:
-
-```json
-{
-  "token_type": "Bearer",
-  "access_token": "vendelo-oauth-access-token",
-  "refresh_token": "vendelo-oauth-refresh-token",
-  "expires_in": 3600
-}
-```
-
-## Exemplo de fluxo end-to-end
-
-### 1) Calcular frete
-
-```bash
-curl -X POST http://localhost:80/api/v1/shipment/calculate \
-  -H "Authorization: Bearer vendelo-static-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "from": { "postal_code": "01001000" },
-    "to": { "postal_code": "13083000" },
-    "products": [
-      {
-        "id": "SKU-1",
-        "width": 12,
-        "height": 8,
-        "length": 20,
-        "weight": 0.8,
-        "quantity": 2,
-        "unit_price": 100
-      }
-    ]
-  }'
-```
-
-### 2) Criar cart/pedido
-
-```bash
-curl -X POST http://localhost:80/api/v1/cart \
-  -H "Authorization: Bearer vendelo-static-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "service": "1",
-    "from": { "postal_code": "01001000", "name": "Origem Teste" },
-    "to": { "postal_code": "13083000", "name": "Destino Teste" },
-    "products": [
-      {
-        "id": "SKU-1",
-        "width": 12,
-        "height": 8,
-        "length": 20,
-        "weight": 0.8,
-        "quantity": 2,
-        "unit_price": 100
-      }
-    ]
-  }'
-```
-
-Observação: o fake aceita IDs numéricos de serviço (`"1"`, `"2"`, `"3"`). Valores legados (`"sedex"`, `"pac"`, `"jadlog"`) continuam sendo normalizados internamente para manter compatibilidade.
-
-### 3) Gerar etiqueta
-
-```bash
-curl -X POST http://localhost:80/api/v1/shipment/generate \
-  -H "Authorization: Bearer vendelo-static-token" \
-  -H "Content-Type: application/json" \
-  -d '{ "orders": ["ord_xxxxxxxxxxxxxxxx"] }'
-```
-
-### 4) Consultar pedido
-
-```bash
-curl http://localhost:80/api/v1/orders/ord_xxxxxxxxxxxxxxxx \
-  -H "Authorization: Bearer vendelo-static-token"
-```
-
-### 5) Cancelar pedido
-
-```bash
-curl -X POST http://localhost:80/api/v1/cart/cancel \
-  -H "Authorization: Bearer vendelo-static-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "order": {
-      "id": "ord_xxxxxxxxxxxxxxxx",
-      "reason_id": "2",
-      "description": "Cancelamento de teste"
-    }
-}'
-```
-
-### 6) Consultar tracking por URL pública
-
-```bash
-curl http://localhost:80/tracking/VX1234567BR
-```
-
-Observação importante para o front-end Vendelo:
-
-- Para provider externo, retorne `tracking` como URL absoluta no payload de `shipment/generate` e `orders/{id}`.
-- O fallback para `https://www.melhorrastreio.com.br/rastreio/{codigo}` deve ser usado apenas quando a `integrationTag` for exatamente `"melhor envio"` (comparação em lower case).
-
-## MsgAccount (recomendado)
-
-Para `EXTERNAL_SHIPPING_PROVIDER`:
-
-- `Host`: URL do container (ex: `https://seu-dominio`)
-- `UserName`: valor de `Auth__OAuthClientId` (se OAuth)
-- `Password`: valor de `Auth__OAuthClientSecret` (se OAuth)
-- `Token`: estático (`STATIC`) ou OAuth
-
-## Debug e observabilidade
-
-- `GET /debug/orders`: lista pedidos internos
-- `POST /debug/reset`: limpa pedidos
-- logs com requestId e body em middleware (`RequestAuditMiddleware`)
-
-Se quiser desabilitar debug:
-
-- `Behavior__EnableDebugRoutes=false`
-
-## Docker para EasyPanel (container estático)
-
-`Dockerfile` já pronto. Configure no EasyPanel:
-
-- porta exposta: `80`
-- variáveis de ambiente (base em `.env.example`)
+- porta: `80`
+- configurar vars de ambiente (base `.env.example`)
 - volume persistente em `/app/data` (recomendado)
 
-Build local:
+Build:
 
 ```bash
 docker build -t vendelo-fake-shipping-provider:csharp .
 ```
 
-Run local:
+Run:
 
 ```bash
 docker run -d --name fake-sp-cs \
