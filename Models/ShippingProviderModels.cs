@@ -53,6 +53,7 @@ namespace Vendelo.FakeShippingProvider.Models
         public ShippingProviderCompany company { get; set; }
         public List<ShippingProviderPackage> packages { get; set; }
         public ShippingProviderAdditionalServices additional_services { get; set; }
+        public List<ShippingProviderUserField> user_fields { get; set; }
         public string error { get; set; }
     }
 
@@ -84,6 +85,7 @@ namespace Vendelo.FakeShippingProvider.Models
     {
         public string id { get; set; }
         public decimal quantity { get; set; }
+        public List<ShippingProviderUserField> user_fields { get; set; }
     }
 
     public class ShippingProviderAdditionalServices

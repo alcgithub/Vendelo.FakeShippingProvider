@@ -76,7 +76,8 @@ namespace Vendelo.FakeShippingProvider.Controllers
                             products = request.products.Select(x => new ShippingProviderPackageProduct
                             {
                                 id = x.id,
-                                quantity = x.quantity
+                                quantity = x.quantity,
+                                user_fields = x.user_fields
                             }).ToList()
                         }
                     },
@@ -86,6 +87,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                         own_hand = false,
                         collect = false
                     },
+                    user_fields = request.user_fields,
                     error = null
                 });
             }
