@@ -27,7 +27,8 @@ Com suporte a:
 - `POST /api/v1/shipment/calculate` retorna serviços com `id` `"1"`, `"2"` e `"3"` (compatíveis com o fluxo do Vendelo.Back).
 - `POST /api/v1/cart` retorna `200 OK` com `{ id, protocol, self_tracking, error, errors }`.
 - O pedido nasce com `status = "pending"`.
-- `POST /api/v1/shipment/generate` muda o pedido para `status = "released"` e retorna `label_url` + `tracking`.
+- `POST /api/v1/shipment/generate` muda o pedido para `status = "released"` e retorna `label_url` + `tracking` (ambos como URL de rastreio no fake).
+- Para integração `EXTERNAL_SHIPPING_PROVIDER`, o campo `tracking` deve ser retornado já como URL completa de rastreio (ex: `https://seu-provider/tracking/ABC123`).
 - `POST /api/v1/cart/cancel` muda o pedido para `status = "cancelled"`.
 
 ## Compatibilidade com fluxo do Vendelo.Back
@@ -200,6 +201,11 @@ curl -X POST http://localhost:80/api/v1/cart/cancel \
 ```bash
 curl http://localhost:80/tracking/VX1234567BR
 ```
+
+Observação importante para o front-end Vendelo:
+
+- Para provider externo, retorne `tracking` como URL absoluta no payload de `shipment/generate` e `orders/{id}`.
+- O fallback para `https://www.melhorrastreio.com.br/rastreio/{codigo}` deve ser usado apenas quando a `integrationTag` for exatamente `"melhor envio"` (comparação em lower case).
 
 ## MsgAccount (recomendado)
 

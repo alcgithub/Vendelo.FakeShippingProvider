@@ -164,6 +164,8 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 if (string.IsNullOrWhiteSpace(order.tracking))
                     order.tracking = "VX" + Random.Shared.Next(1000000, 9999999) + "BR";
 
+                var trackingCode = NormalizeTrackingCode(order.tracking) ?? order.tracking;
+                var trackingUrl = BuildTrackingUrl(trackingCode);
                 order.self_tracking = NormalizeTrackingCode(order.self_tracking) ?? order.tracking;
                 order.status = "released";
                 order.events.Add(new StoredEvent
@@ -177,8 +179,8 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 {
                     id = orderId,
                     status = "released",
-                    label_url = "https://labels.fake-shipping.local/" + orderId + ".pdf",
-                    tracking = NormalizeTrackingCode(order.tracking) ?? order.tracking,
+                    label_url = trackingUrl,
+                    tracking = trackingUrl ?? trackingCode,
                     error = null
                 });
             }

@@ -2,6 +2,7 @@
   "info": {
     "_postman_id": "f9df9402-cf4e-40f7-83ba-f41d4b7fc2b6",
     "name": "Vendelo Fake Shipping Provider",
+    "description": "Observação Vendelo: para EXTERNAL_SHIPPING_PROVIDER, retorne o campo tracking como URL completa (absoluta). O fallback do front para melhorrastreio deve ser usado apenas quando integrationTag for \"melhor envio\" (lower case).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -346,6 +347,7 @@
     {
       "name": "Generate Label",
       "request": {
+        "description": "Recomendação para provider externo: o campo tracking da resposta deve vir como URL absoluta de rastreio.",
         "method": "POST",
         "header": [
           {
@@ -401,6 +403,7 @@
     {
       "name": "Get Order",
       "request": {
+        "description": "Para provider externo, mantenha tracking como link completo no retorno do pedido.",
         "method": "GET",
         "header": [
           {
