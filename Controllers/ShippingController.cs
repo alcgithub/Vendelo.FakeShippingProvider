@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Vendelo.FakeShippingProvider.Models;
 using Vendelo.FakeShippingProvider.Options;
@@ -23,6 +24,8 @@ namespace Vendelo.FakeShippingProvider.Controllers
         [HttpPost("/api/v1/shipment/calculate")]
         public IActionResult Calculate([FromBody] ShippingProviderQuoteRequest request)
         {
+            Console.WriteLine($"[calculate] payload: {JsonSerializer.Serialize(request)}");
+
             var errors = RequestValidator.ValidateQuote(request);
             if (errors.Count > 0)
                 return UnprocessableEntity(new ValidationErrorResponse { errors = errors });
