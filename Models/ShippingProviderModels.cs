@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Vendelo.FakeShippingProvider.Models
 {
@@ -7,6 +7,7 @@ namespace Vendelo.FakeShippingProvider.Models
         public ShippingProviderQuoteParty from { get; set; }
         public ShippingProviderQuoteParty to { get; set; }
         public string incoterms { get; set; }
+        public ShippingProviderQuoteCarrier carrier { get; set; }
         public List<ShippingProviderQuoteProduct> products { get; set; }
         public List<ShippingProviderUserField> user_fields { get; set; }
     }
@@ -33,7 +34,14 @@ namespace Vendelo.FakeShippingProvider.Models
         public decimal unit_price { get; set; }
         public decimal discount_total { get; set; }
         public decimal insurance_value { get; set; }
+        public decimal available_stock { get; set; }
         public List<ShippingProviderUserField> user_fields { get; set; }
+    }
+
+    public class ShippingProviderQuoteCarrier
+    {
+        public string id { get; set; }
+        public string erp_id { get; set; }
     }
 
     public class ShippingProviderUserField
@@ -281,3 +289,6 @@ namespace Vendelo.FakeShippingProvider.Models
         public Dictionary<string, string> meta { get; set; } = new Dictionary<string, string>();
     }
 }
+
+
+
