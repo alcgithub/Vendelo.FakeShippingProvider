@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 
+using System.Text.Json.Serialization;
+
 namespace Vendelo.FakeShippingProvider.Models
 {
     public class ShippingProviderQuoteRequest
@@ -58,6 +60,7 @@ namespace Vendelo.FakeShippingProvider.Models
         public decimal discount { get; set; }
         public string currency { get; set; }
         public int custom_delivery_time { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ShippingProviderQuoteResponseCarrier carrier { get; set; }
         public ShippingProviderCompany company { get; set; }
         public List<ShippingProviderPackage> packages { get; set; }
