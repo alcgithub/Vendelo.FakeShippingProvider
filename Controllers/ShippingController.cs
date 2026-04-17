@@ -13,6 +13,19 @@ namespace Vendelo.FakeShippingProvider.Controllers
     [ApiController]
     public class ShippingController : ControllerBase
     {
+        private static readonly string[] CarrierErpIds =
+        {
+            "V10000",
+            "V30000",
+            "V60000",
+            "V10010",
+            "V20000",
+            "V50000",
+            "V22000",
+            "V21000",
+            "V70000"
+        };
+
         private readonly IDataStore _store;
         private readonly AppOptions _options;
         private readonly ILogger<ShippingController> _logger;
@@ -55,6 +68,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                 var quotePrice = ids[i] == "4"
                     ? GetUnitPriceRef(request.products, basePrice)
                     : Math.Round(basePrice * factors[i], 2);
+                var carrierErpId = PickCarrierErpId();
                 rows.Add(new ShippingProviderQuoteResponse
                 {
                     id = ids[i],
@@ -63,6 +77,10 @@ namespace Vendelo.FakeShippingProvider.Controllers
                     discount = ids[i] == "4" ? 0m : (i == 0 ? 0m : Math.Round(basePrice * factors[i] * 0.05m, 2)),
                     currency = "BRL",
                     custom_delivery_time = days[i],
+                    carrier = string.IsNullOrWhiteSpace(carrierErpId) ? null : new ShippingProviderQuoteResponseCarrier
+                    {
+                        erp_id = carrierErpId
+                    },
                     company = PickCompany(ids[i]),
                     packages = new List<ShippingProviderPackage>
                     {
@@ -392,6 +410,17 @@ namespace Vendelo.FakeShippingProvider.Controllers
             }
 
             return sum;
+        }
+
+        private static string PickCarrierErpId()
+        {
+            if (CarrierErpIds.Length == 0)
+                return null;
+
+            if (Random.Shared.Next(2) == 0)
+                return null;
+
+            return CarrierErpIds[Random.Shared.Next(CarrierErpIds.Length)];
         }
     }
 }

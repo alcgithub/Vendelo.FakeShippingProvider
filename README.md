@@ -55,7 +55,10 @@ Regras atuais de calculo fake:
 
 - `POST /api/v1/shipment/calculate`
 - Uso: calcula opcoes de frete por servico.
-- Retorno: lista de servicos fake (`1`, `2`, `3`, `4`) com prazo/valor.
+- Requisição: aceita `carrier` com `id` e `erp_id` quando o integrador precisar identificar a transportadora.
+- Retorno: lista de servicos fake (`1`, `2`, `3`, `4`) com prazo/valor e `carrier` no layout de cada cotacao.
+- Para teste local, o `carrier.erp_id` pode vir preenchido de forma aleatoria com um destes valores fixos: `V10000`, `V30000`, `V60000`, `V10010`, `V20000`, `V50000`, `V22000`, `V21000`, `V70000`; em outras chamadas, ele pode vir vazio.
+- No layout de retorno, `ShippingProviderQuoteResponseCarrier` expõe apenas `erp_id`; o `id` e resolvido pelo backend consumidor a partir desse `erpId`.
 
 ### Criar cart/pedido
 

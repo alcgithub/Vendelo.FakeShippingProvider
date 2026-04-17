@@ -58,11 +58,17 @@ namespace Vendelo.FakeShippingProvider.Models
         public decimal discount { get; set; }
         public string currency { get; set; }
         public int custom_delivery_time { get; set; }
+        public ShippingProviderQuoteResponseCarrier carrier { get; set; }
         public ShippingProviderCompany company { get; set; }
         public List<ShippingProviderPackage> packages { get; set; }
         public ShippingProviderAdditionalServices additional_services { get; set; }
         public List<ShippingProviderUserField> user_fields { get; set; }
         public string error { get; set; }
+    }
+
+    public class ShippingProviderQuoteResponseCarrier
+    {
+        public string erp_id { get; set; }
     }
 
     public class ShippingProviderCompany
