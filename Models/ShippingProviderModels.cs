@@ -89,6 +89,7 @@ namespace Vendelo.FakeShippingProvider.Models
         public decimal insurance_value { get; set; }
         public ShippingProviderDimensions dimensions { get; set; }
         public List<ShippingProviderPackageProduct> products { get; set; }
+        public List<ShippingProviderUserField> user_fields { get; set; }
     }
 
     public class ShippingProviderDimensions

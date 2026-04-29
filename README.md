@@ -59,6 +59,11 @@ Regras atuais de calculo fake:
 - Retorno: lista de servicos fake (`1`, `2`, `3`, `4`) com prazo/valor e `carrier` no layout de cada cotacao.
 - Para teste local, o `carrier.erp_id` pode vir preenchido de forma aleatoria com um destes valores fixos: `V10000`, `V30000`, `V60000`, `V10010`, `V20000`, `V50000`, `V22000`, `V21000`, `V70000`; em outras chamadas, o bloco `carrier` e omitido do response.
 - No layout de retorno, `ShippingProviderQuoteResponseCarrier` expõe apenas `erp_id`; o `id` e resolvido pelo backend consumidor a partir desse `erpId`.
+- Quando o request trouxer `user_fields`, o fake provider pode devolver esses mesmos campos em `user_fields` do retorno e, em algumas respostas, alterar o valor de um ou mais campos para simular sobrescrita no consumidor.
+- Essa simulacao vale para:
+  - `user_fields` do documento
+  - `products[].user_fields`
+  - `packages[].user_fields`
 
 ### Criar cart/pedido
 

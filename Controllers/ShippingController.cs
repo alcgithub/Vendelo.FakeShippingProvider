@@ -95,8 +95,9 @@ namespace Vendelo.FakeShippingProvider.Controllers
                             {
                                 id = x.id,
                                 quantity = x.quantity,
-                                user_fields = x.user_fields
-                            }).ToList()
+                                user_fields = MaybeReturnUserFields(x.user_fields, $"item:{x.id}")
+                            }).ToList(),
+                            user_fields = MaybeReturnUserFields(request.user_fields, $"package:{ids[i]}")
                         }
                     },
                     additional_services = new ShippingProviderAdditionalServices
@@ -105,7 +106,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                         own_hand = false,
                         collect = false
                     },
-                    user_fields = request.user_fields,
+                    user_fields = MaybeReturnUserFields(request.user_fields, $"quote:{ids[i]}"),
                     error = null
                 });
             }
@@ -410,6 +411,52 @@ namespace Vendelo.FakeShippingProvider.Controllers
             }
 
             return sum;
+        }
+
+        private static List<ShippingProviderUserField> MaybeReturnUserFields(List<ShippingProviderUserField> fields, string scope)
+        {
+            if (fields == null || fields.Count == 0)
+                return null;
+
+            var copy = fields
+                .Where(f => f != null && !string.IsNullOrWhiteSpace(f.name))
+                .Select(f => new ShippingProviderUserField
+                {
+                    name = f.name,
+                    value = f.value
+                })
+                .ToList();
+
+            if (copy.Count == 0)
+                return null;
+
+            // Faz a simulação "às vezes": em parte das respostas os valores vêm iguais,
+            // em parte eles vêm alterados para testar sobrescrita no consumidor.
+            if (Random.Shared.Next(2) == 0)
+                return copy;
+
+            var index = Random.Shared.Next(copy.Count);
+            copy[index].value = BuildDifferentValue(copy[index].value, scope, copy[index].name);
+
+            if (copy.Count > 1 && Random.Shared.Next(3) == 0)
+            {
+                copy.Add(new ShippingProviderUserField
+                {
+                    name = $"{scope}_extra",
+                    value = "fake-extra-value"
+                });
+            }
+
+            return copy;
+        }
+
+        private static string BuildDifferentValue(string currentValue, string scope, string fieldName)
+        {
+            var baseValue = string.IsNullOrWhiteSpace(currentValue)
+                ? $"{scope}:{fieldName}"
+                : currentValue.Trim();
+
+            return $"{baseValue} (fake)";
         }
 
         private static string PickCarrierErpId()
