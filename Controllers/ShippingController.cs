@@ -414,7 +414,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
             return sum;
         }
 
-        private static List<ShippingProviderUserField> MaybeReturnUserFields(List<ShippingProviderUserField> fields, string scope)
+        private List<ShippingProviderUserField> MaybeReturnUserFields(List<ShippingProviderUserField> fields, string scope)
         {
             if (fields == null || fields.Count == 0)
                 return null;
@@ -431,13 +431,25 @@ namespace Vendelo.FakeShippingProvider.Controllers
             if (copy.Count == 0)
                 return null;
 
+            // Só alteramos os campos cujo nome está configurado em Behavior.FakeUserFieldNames.
+            var allowed = _options.Behavior.FakeUserFieldNames;
+            if (allowed == null || allowed.Count == 0)
+                return copy;
+
+            var fakeable = copy
+                .Where(f => allowed.Contains(f.name, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (fakeable.Count == 0)
+                return copy;
+
             // Faz a simulação "às vezes": em parte das respostas os valores vêm iguais,
             // em parte eles vêm alterados para testar sobrescrita no consumidor.
             if (Random.Shared.Next(2) == 0)
                 return copy;
 
-            var index = Random.Shared.Next(copy.Count);
-            copy[index].value = BuildDifferentValue(copy[index].value, scope, copy[index].name);
+            var target = fakeable[Random.Shared.Next(fakeable.Count)];
+            target.value = BuildDifferentValue(target.value, scope, target.name);
 
             return copy;
         }

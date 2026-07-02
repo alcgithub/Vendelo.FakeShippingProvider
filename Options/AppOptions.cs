@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Vendelo.FakeShippingProvider.Options
 {
     public class AppOptions
@@ -24,6 +26,10 @@ namespace Vendelo.FakeShippingProvider.Options
     {
         public bool EnableDebugRoutes { get; set; } = true;
         public string ForceErrorForService { get; set; } = "";
+
+        // Nomes de user_fields que podem receber valor fake na resposta.
+        // Se vazia, nenhum campo é alterado (todos voltam com o valor original).
+        public List<string> FakeUserFieldNames { get; set; } = new List<string>();
     }
 
     public class StorageOptions
