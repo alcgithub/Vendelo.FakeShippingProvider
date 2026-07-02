@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -438,25 +439,36 @@ namespace Vendelo.FakeShippingProvider.Controllers
             var index = Random.Shared.Next(copy.Count);
             copy[index].value = BuildDifferentValue(copy[index].value, scope, copy[index].name);
 
-            if (copy.Count > 1 && Random.Shared.Next(3) == 0)
-            {
-                copy.Add(new ShippingProviderUserField
-                {
-                    name = $"{scope}_extra",
-                    value = "fake-extra-value"
-                });
-            }
-
             return copy;
         }
 
+        // Gera um valor fake diferente do original, mas preservando o "tipo" que o
+        // valor aparenta ter. user_fields sempre trafegam como string, porém podem
+        // carregar número/preço, data ou booleano serializados como texto — e o
+        // consumidor pode fazer parse disso. Só concatenamos texto livre quando o
+        // valor realmente é texto; caso contrário devolvemos um valor válido do
+        // mesmo tipo, evitando quebrar o parse do lado do consumidor.
         private static string BuildDifferentValue(string currentValue, string scope, string fieldName)
         {
-            var baseValue = string.IsNullOrWhiteSpace(currentValue)
-                ? $"{scope}:{fieldName}"
-                : currentValue.Trim();
+            if (string.IsNullOrWhiteSpace(currentValue))
+                return $"{scope}:{fieldName} (fake)";
 
-            return $"{baseValue} (fake)";
+            var trimmed = currentValue.Trim();
+
+            // Numérico (inteiro ou decimal) -> outro número válido.
+            if (decimal.TryParse(trimmed, NumberStyles.Any, CultureInfo.InvariantCulture, out var dec))
+                return (dec + 1).ToString(CultureInfo.InvariantCulture);
+
+            // Data/hora -> outra data válida no mesmo formato ISO.
+            if (DateTime.TryParse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt))
+                return dt.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            // Booleano -> invertido.
+            if (bool.TryParse(trimmed, out var b))
+                return (!b).ToString().ToLowerInvariant();
+
+            // Texto livre -> aí sim podemos concatenar.
+            return $"{trimmed} (fake)";
         }
 
         private static string PickCarrierErpId()
