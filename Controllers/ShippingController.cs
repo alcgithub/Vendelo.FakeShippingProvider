@@ -70,6 +70,10 @@ namespace Vendelo.FakeShippingProvider.Controllers
                     ? GetUnitPriceRef(request.products, basePrice)
                     : Math.Round(basePrice * factors[i], 2);
                 var carrierErpId = PickCarrierErpId();
+                // O mesmo conjunto de user_fields (com o eventual fake já aplicado) é
+                // reutilizado no package e no root da cotação, para não devolver um
+                // valor de um lado e outro diferente do outro.
+                var quoteUserFields = MaybeReturnUserFields(request.user_fields, $"quote:{ids[i]}");
                 rows.Add(new ShippingProviderQuoteResponse
                 {
                     id = ids[i],
@@ -98,7 +102,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                                 quantity = x.quantity,
                                 user_fields = MaybeReturnUserFields(x.user_fields, $"item:{x.id}")
                             }).ToList(),
-                            user_fields = MaybeReturnUserFields(request.user_fields, $"package:{ids[i]}")
+                            user_fields = quoteUserFields
                         }
                     },
                     additional_services = new ShippingProviderAdditionalServices
@@ -107,7 +111,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                         own_hand = false,
                         collect = false
                     },
-                    user_fields = MaybeReturnUserFields(request.user_fields, $"quote:{ids[i]}"),
+                    user_fields = quoteUserFields,
                     error = null
                 });
             }
@@ -471,9 +475,22 @@ namespace Vendelo.FakeShippingProvider.Controllers
             if (decimal.TryParse(trimmed, NumberStyles.Any, CultureInfo.InvariantCulture, out var dec))
                 return (dec + 1).ToString(CultureInfo.InvariantCulture);
 
-            // Data/hora -> outra data válida no mesmo formato ISO.
+            // Hora pura (sem componente de data) -> outra hora válida em ISO (HH:mm:ss).
+            if (trimmed.IndexOf('-') < 0 && trimmed.IndexOf('/') < 0 &&
+                TimeSpan.TryParse(trimmed, CultureInfo.InvariantCulture, out var ts))
+                return ts.Add(TimeSpan.FromMinutes(1)).ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture);
+
+            // Data/hora -> outra data válida no mesmo formato ISO. Preservamos o
+            // "tipo": data pura volta como yyyy-MM-dd; data com hora volta em ISO
+            // 8601 completo (com hora e, se houver, o offset/Z de origem).
             if (DateTime.TryParse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt))
-                return dt.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            {
+                var next = dt.AddDays(1);
+                var hasTimeComponent = trimmed.IndexOf('T') >= 0 || trimmed.IndexOf(':') >= 0;
+                return hasTimeComponent
+                    ? next.ToString("o", CultureInfo.InvariantCulture)
+                    : next.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            }
 
             // Booleano -> invertido.
             if (bool.TryParse(trimmed, out var b))
