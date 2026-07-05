@@ -66,14 +66,17 @@ namespace Vendelo.FakeShippingProvider.Controllers
             var rows = new List<ShippingProviderQuoteResponse>();
             for (var i = 0; i < ids.Length; i++)
             {
-                var quotePrice = ids[i] == "4"
+                var isChinaLog = ids[i] == "4";
+                var quotePrice = isChinaLog
                     ? GetUnitPriceRef(request.products, basePrice)
                     : Math.Round(basePrice * factors[i], 2);
-                var carrierErpId = PickCarrierErpId();
+                // Na cotação ChinaLog a transportadora sempre vem preenchida; nas
+                // demais mantém o sorteio (podendo vir nula).
+                var carrierErpId = PickCarrierErpId(forceCarrier: isChinaLog);
                 // O mesmo conjunto de user_fields (com o eventual fake já aplicado) é
                 // reutilizado no package e no root da cotação, para não devolver um
                 // valor de um lado e outro diferente do outro.
-                var quoteUserFields = MaybeReturnUserFields(request.user_fields, $"quote:{ids[i]}");
+                var quoteUserFields = MaybeReturnUserFields(request.user_fields, $"quote:{ids[i]}", isChinaLog);
                 rows.Add(new ShippingProviderQuoteResponse
                 {
                     id = ids[i],
@@ -100,7 +103,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
                             {
                                 id = x.id,
                                 quantity = x.quantity,
-                                user_fields = MaybeReturnUserFields(x.user_fields, $"item:{x.id}")
+                                user_fields = MaybeReturnUserFields(x.user_fields, $"item:{x.id}", isChinaLog)
                             }).ToList(),
                             user_fields = quoteUserFields
                         }
@@ -418,7 +421,7 @@ namespace Vendelo.FakeShippingProvider.Controllers
             return sum;
         }
 
-        private List<ShippingProviderUserField> MaybeReturnUserFields(List<ShippingProviderUserField> fields, string scope)
+        private List<ShippingProviderUserField> MaybeReturnUserFields(List<ShippingProviderUserField> fields, string scope, bool allowFake)
         {
             if (fields == null || fields.Count == 0)
                 return null;
@@ -434,6 +437,11 @@ namespace Vendelo.FakeShippingProvider.Controllers
 
             if (copy.Count == 0)
                 return null;
+
+            // O fake só se aplica à cotação ChinaLog; nas demais os valores voltam
+            // exatamente como chegaram.
+            if (!allowFake)
+                return copy;
 
             // Só alteramos os campos cujo nome está configurado em Behavior.FakeUserFieldNames.
             var allowed = _options.Behavior.FakeUserFieldNames;
@@ -500,12 +508,12 @@ namespace Vendelo.FakeShippingProvider.Controllers
             return $"{trimmed} (fake)";
         }
 
-        private static string PickCarrierErpId()
+        private static string PickCarrierErpId(bool forceCarrier)
         {
             if (CarrierErpIds.Length == 0)
                 return null;
 
-            if (Random.Shared.Next(2) == 0)
+            if (!forceCarrier && Random.Shared.Next(2) == 0)
                 return null;
 
             return CarrierErpIds[Random.Shared.Next(CarrierErpIds.Length)];
